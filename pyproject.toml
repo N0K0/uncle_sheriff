@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "uncle_sheriff"
+version = "0.1.0"
+description = "Sometimes we gotta hunt down them uncle bandits"
+authors = ["Nikolas 'n0k0' Papaioannou <n0k0@hacky.software>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+web3 = "^5.18.0"
+pydantic = "^1.8.1"
+requests = "^2.25.1"
+
+[tool.poetry.dev-dependencies]
+
+[tool.black]
+line-length = 88
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
