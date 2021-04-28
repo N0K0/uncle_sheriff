@@ -15,7 +15,14 @@ fb_tx.create_index("transaction_hash")
 
 def insert_block(block: Block):
     data = saveable_dict(block.dict())
-    data["transactions"] = list(map(saveable_dict, d["transactions"]))
+    data["transactions"] = list(
+        map(
+            saveable_dict,
+            data[
+                "transactions",
+            ],
+        )
+    )
     fb_block.replace_one(
         {"block_number": block.block_number},
         data,
