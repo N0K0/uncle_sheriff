@@ -64,7 +64,7 @@ def patrol_the_ranch(block_oldest, block_newest):
     for index in range(block_oldest, block_newest):
         print(f"Index: {index}")
 
-        # TODO: Check if FB_TX is in block
+        # TODO: Validate
         geth_block = w3.eth.get_block(index, full_transactions=True)
         geth_tx = geth_block["transactions"]
         for tx in geth_tx:
@@ -82,11 +82,14 @@ def patrol_the_ranch(block_oldest, block_newest):
                     )
 
         # TODO: Check if EOA is reused, may prune retries++
+        # Should not be an issue on the size of the dataset
 
         # Add new TXes in the end, since we don't want them while testing the rest of the block
         if fb_block := database.get_block(index):
             print("FB block, adding TX to scan")
-            pending_tx.extend(fb_block.transactions)
+            for tx in fb_block.transactions:
+                if tx.gas_price <= GAS_PRICE_FILTER:
+                    pending_tx.append(tx)
 
 
 def find_uncles(
