@@ -19,24 +19,31 @@ Read:
 
 
 ### Fetch all Flashbots mev blocks from the block.flashbots.net api
-Simple enough. The API is awesome and nice. I'm locked to 10000 lookback, assuming FB core has its own api :')
+Simple enough. The API is awesome and nice.
 https://blocks.flashbots.net/
 
-### Fetch all uncles from geth
+### Fetch all flashbots uncles from geth
 Go through all flashbots blocks, check if the block became an uncle
+From uncle: Save all bundle TXes with gas_price under 10
 
-### Save all TXes from the 
+Keep TXes in database until EOA is reused (aka nonce increased)
 
+If we find a TX in another block we report:
+Uncle block number, Bandit block number, tx detected
+
+Also report on other invalidation via EoA reused
 
 ## Things to figure out:
 
 When can we reasonably discard a Flashbots TX from our cache?
 * We can check the from address and figure out if the TX nonce has been used for another tx?
+  Lets try by checking the if the EOA has been used again, and not for the same TX
 
 What other sources are there for false positives?
 * The user may have resent the same bundle, need to find out how to check for this. 
   Possible to just concat the different tx hashes and use that as an key?
   
+
 
 
 

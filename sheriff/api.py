@@ -1,11 +1,10 @@
-from typing import Optional
-from sheriff.structs import Blocks, Transactions
+from typing import Optional, Union
+from structs import Blocks, Transactions
 import os
 
 from requests.adapters import HTTPAdapter
 from requests import Session
 from urllib.parse import urljoin
-
 
 flashbots_url = os.getenv("FLASHBOTS_API", "https://blocks.flashbots.net/v1/")
 
@@ -15,7 +14,7 @@ class ApiSession(Session):
         super(ApiSession, self).__init__()
 
         adapter = HTTPAdapter(max_retries=10)
-        self.mount("https://", adapter)
+        self.mount("http://", adapter)
         self.mount("https://", adapter)
         self.prefix_url = prefix_url
 
@@ -30,7 +29,7 @@ api = ApiSession(flashbots_url)
 def blocks(
     block_number: Optional[str] = None,
     miner: Optional[str] = None,
-    before: Optional[str] = None,  # Default to 'latest server side'
+    before: Optional[Union[int, str]] = None,  # Default to 'latest' server side
     limit: Optional[int] = None,  # Default to 100
 ):
     payload = {

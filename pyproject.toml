@@ -9,6 +9,9 @@ python = "^3.9"
 web3 = "^5.18.0"
 pydantic = "^1.8.1"
 requests = "^2.25.1"
+typer = "^0.3.2"
+pymongo = "^3.11.3"
+tqdm = "^4.60.0"
 
 [tool.poetry.dev-dependencies]
 
