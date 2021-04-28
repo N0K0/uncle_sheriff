@@ -61,8 +61,7 @@ class Transactions(BaseModel):
 class BanditTransaction(BaseModel):
     transaction_hash: str
     bandit_block: int
-    origin_block: Block
-    bandit_tx: Transaction
+    origin_block: int
 
 
 # Model used to persis data between runs

@@ -42,8 +42,8 @@ def blocks(
     resp = api.get(
         "blocks",
         params=payload,
-    )
-    return Blocks(**resp.json())
+    ).json()
+    return Blocks(**resp)
 
 
 def transactions(

@@ -1,6 +1,6 @@
 from pymongo.mongo_client import MongoClient
-from structs import Block, Transaction, saveable_dict
-from typing import List
+from structs import Block, Transaction, BanditTransaction, saveable_dict
+from typing import List, Optional
 
 client = MongoClient(port=20001, username="root", password="rootpassword")
 db = client["flashbots"]
@@ -23,6 +23,15 @@ def insert_block(block: Block):
     )
 
 
+def insert_bandit(bandit: BanditTransaction):
+    d = saveable_dict(bandit.dict())
+    bandit_tx.replace_one(
+        {"bandit_block": bandit.bandit_block},
+        d,
+        upsert=True,
+    )
+
+
 def insert_txs(txs: List[Transaction]):
     for tx in txs:
         d = saveable_dict(tx.dict())
@@ -37,6 +46,13 @@ def lowest_fb_block() -> int:
     blocks = get_blocks()
     val = min([block.block_number for block in blocks])
     return val
+
+
+def get_block(block_number: int) -> Optional[Block]:
+    block = fb_block.find_one({"block_number": str(block_number)})
+    if block:
+        return Block(**block)
+    return None
 
 
 def get_blocks() -> List[Block]:

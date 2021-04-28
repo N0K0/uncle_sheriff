@@ -1,7 +1,7 @@
 #!/bin/env python3
 from typing import List
 
-from structs import State, Block
+from structs import State, Block, Transaction, BanditTransaction
 from web3 import Web3, WebsocketProvider
 import api
 import database
@@ -16,19 +16,19 @@ w3: Web3 = Web3()
 
 
 def ride_your_horse_down_town(
-    block_oldest: int = typer.Argument(
+    block_oldest: int = typer.Option(
         OLDEST_BLOCK,
         help="What block to start the scan from",
     ),
-    block_newest: int = typer.Argument(
+    block_newest: int = typer.Option(
         None,
         help="What block to end the scan on",
     ),
-    gas_price_filter: int = typer.Argument(
+    gas_price_filter: int = typer.Option(
         GAS_PRICE_FILTER,
         help="Max gas price for TXes we should monitor",
     ),
-    ws_endpoint: str = typer.Argument(
+    ws_endpoint: str = typer.Option(
         "ws://localhost:8546", help="Which WS endpoint we are going to use"
     ),
 ):
@@ -42,7 +42,7 @@ def ride_your_horse_down_town(
 
     # TODO: Make none activate a live mode instead of stopping
     if block_newest is None:
-        block_newest = w3.eth.block_number + 100
+        block_newest = w3.eth.block_number
 
     if block_newest < 0:
         block_newest = w3.eth.block_number - abs(block_newest)
@@ -53,14 +53,40 @@ def ride_your_horse_down_town(
     find_uncles(block_oldest, block_newest)
 
     # Filter out the relevant TXes from the DB
-    start = database.lowest_fb_block()
+    start = max(database.lowest_fb_block(), block_oldest)
     patrol_the_ranch(start, block_newest)
 
 
 def patrol_the_ranch(block_oldest, block_newest):
-    fb_txs = database.get_fb_tx(GAS_PRICE_FILTER)
+    global w3
+    pending_tx: List[Transaction] = []
 
-    index = block_oldest
+    for index in range(block_oldest, block_newest):
+        print(f"Index: {index}")
+
+        # TODO: Check if FB_TX is in block
+        geth_block = w3.eth.get_block(index, full_transactions=True)
+        geth_tx = geth_block["transactions"]
+        for tx in geth_tx:
+            for fb_tx in pending_tx:
+                if tx["hash"].hex() == fb_tx.transaction_hash:
+                    print("Found something!")
+                    print(tx)
+                    print(fb_tx)
+                    database.insert_bandit(
+                        BanditTransaction(
+                            transaction_hash=tx["hash"].hex(),
+                            bandit_block=index,
+                            origin_block=fb_tx.block_number,
+                        )
+                    )
+
+        # TODO: Check if EOA is reused, may prune retries++
+
+        # Add new TXes in the end, since we don't want them while testing the rest of the block
+        if fb_block := database.get_block(index):
+            print("FB block, adding TX to scan")
+            pending_tx.extend(fb_block.transactions)
 
 
 def find_uncles(
@@ -68,10 +94,7 @@ def find_uncles(
     block_newest: int,
 ):
     """
-    Finds blocks in range,
-    :param block_oldest:
-    :param block_newest:
-    :return:
+    Finds uncle blocks in range,
     """
     global w3
 
@@ -89,14 +112,20 @@ def find_uncles(
 
 def get_blocks_in_range(block_oldest, block_newest) -> None:
     """
-    Traverse the blocks backwards untill we hit the oldest one. We will also add the "overflow" to the DB
+    Traverse the blocks backwards until we hit the oldest one. We will also add the "overflow" to the DB
     :param block_oldest: Lowest/Oldest block to stop at
     :param block_newest: Highest/Newest block to start the search at
     """
     index = block_newest
     while index > block_oldest:
-        response = api.blocks(before=index, limit=SCAN_LIMIT)
-        for block in reversed(response.blocks):
+
+        if (index - SCAN_LIMIT) < block_oldest:
+            limit = index - block_oldest
+        else:
+            limit = SCAN_LIMIT
+
+        response = api.blocks(before=index, limit=limit)
+        for block in response.blocks:
             if check_if_uncle(block.block_number):
                 print(f"Uncle: {block.block_number}")
                 database.insert_block(block)
