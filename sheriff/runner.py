@@ -131,8 +131,10 @@ def get_blocks_in_range(block_oldest, block_newest) -> None:
         for block in response.blocks:
             if check_if_uncle(block.block_number):
                 print(f"Uncle: {block.block_number}")
-                database.insert_block(block)
-                database.insert_txs(block.transactions)
+                database.insert_block(block, True)
+                database.insert_txs(block.transactions, True)
+            database.insert_block(block, False)
+            database.insert_txs(block.transactions, False)
 
         if len(response.blocks) == 0:
             # No results -> We are done

@@ -5,25 +5,36 @@ from typing import List, Optional
 client = MongoClient(port=20001, username="root", password="rootpassword")
 db = client["flashbots"]
 fb_block = db["fb_block"]  # Saves all the FB blocks
+fb_block_all = db["fb_block_all"]
 bandit_tx = db["bandit"]  # Saves the suspected bandit blocks
 fb_tx = db["fb_tx"]  # Saves all the fb tx
+fb_tx_all = db["fb_tx_all"]
 
 fb_block.create_index("block_number")
+fb_block_all.create_index("block_number")
 bandit_tx.create_index("transaction_hash")
 fb_tx.create_index("transaction_hash")
+fb_tx_all.create_index("transaction_hash")
 
 
-def insert_block(block: Block):
+def insert_block(block: Block, uncle: bool):
+
     data = saveable_dict(block.dict())
     data["transactions"] = list(
         map(
             saveable_dict,
-            data[
-                "transactions",
-            ],
+            data["transactions"],
         )
     )
-    fb_block.replace_one(
+
+    if uncle:
+        fb_block.replace_one(
+            {"block_number": block.block_number},
+            data,
+            upsert=True,
+        )
+
+    fb_block_all.replace_one(
         {"block_number": block.block_number},
         data,
         upsert=True,
@@ -39,10 +50,18 @@ def insert_bandit(bandit: BanditTransaction):
     )
 
 
-def insert_txs(txs: List[Transaction]):
+def insert_txs(txs: List[Transaction], uncle: bool):
     for tx in txs:
         d = saveable_dict(tx.dict())
-        fb_tx.replace_one(
+
+        if uncle:
+            fb_tx.replace_one(
+                {"transaction_hash": tx.transaction_hash},
+                d,
+                upsert=True,
+            )
+
+        fb_tx_all.replace_one(
             {"transaction_hash": tx.transaction_hash},
             d,
             upsert=True,
